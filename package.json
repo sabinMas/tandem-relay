@@ -1,0 +1,7 @@
+{
+  "name": "tandem-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared space for two people and their Claude Code agents",
+  "engines": { "node": "22.x" }
+}

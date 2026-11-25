@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Tandem Relay</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='11' cy='16' r='8' fill='%237c9cff'/%3E%3Ccircle cx='21' cy='16' r='8' fill='%23ffb86b' fill-opacity='.85'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1f24; --muted: #6b7078; --line: #e3e3de;
+    --a: #3f63e0; --a-soft: #e8edff;      /* first person */
+    --b: #c2610f; --b-soft: #fff0e0;      /* second person */
+    --agent: #eef0f3; --ok: #1f9d55; --warn: #b7791f;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a; --panel: #1c1f25; --ink: #e8e9ec; --muted: #9096a0; --line: #2a2e36;
+      --a: #8da7ff; --a-soft: #232b4a; --b: #ffb86b; --b-soft: #3a2a17; --agent: #252932; --ok: #4cc77f; --warn: #e0b45a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a; --panel: #1c1f25; --ink: #e8e9ec; --muted: #9096a0; --line: #2a2e36;
+    --a: #8da7ff; --a-soft: #232b4a; --b: #ffb86b; --b-soft: #3a2a17; --agent: #252932; --ok: #4cc77f; --warn: #e0b45a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, textarea, input { font: inherit; color: inherit; }
+  .app { display: grid; grid-template-rows: auto 1fr; height: 100dvh; max-width: 1180px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    background: var(--panel); flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -.01em; font-size: 17px; }
+  .logo { width: 28px; height: 20px; position: relative; }
+  .logo i { position: absolute; top: 0; width: 20px; height: 20px; border-radius: 50%; }
+  .logo i:first-child { left: 0; background: var(--a); }
+  .logo i:last-child { left: 9px; background: var(--b); opacity: .85; }
+  .who { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--line);
+    border-radius: 999px; font-size: 13px; color: var(--muted); background: var(--bg);
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; }
+  .dot.on { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .dot.idle { background: var(--warn); }
+  main { display: grid; grid-template-columns: 1fr 340px; min-height: 0; }
+  .col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  .tabs { display: none; }
+  #feed { flex: 1; overflow-y: auto; padding: 18px 16px 8px; scroll-behavior: smooth; }
+  .day { text-align: center; color: var(--muted); font-size: 12px; margin: 14px 0 8px; }
+  .msg { display: flex; flex-direction: column; margin: 10px 0; max-width: 78%; }
+  .msg .meta { font-size: 12px; color: var(--muted); margin: 0 6px 3px; display: flex; gap: 6px; align-items: baseline; }
+  .msg .meta b { color: var(--ink); font-weight: 600; }
+  .tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; padding: 1px 6px; border-radius: 6px; background: var(--agent); color: var(--muted); }
+  .tag.steer { background: var(--warn); color: #fff; }
+  .bubble { padding: 9px 13px; border-radius: var(--radius); word-wrap: break-word; overflow-wrap: anywhere; white-space: pre-wrap; border: 1px solid transparent; }
+  .msg.p0 { align-self: flex-start; } .msg.p1 { align-self: flex-end; align-items: flex-end; }
+  .msg.p0.human .bubble { background: var(--a-soft); } .msg.p1.human .bubble { background: var(--b-soft); }
+  .msg.agent .bubble { background: var(--panel); border-color: var(--line); border-left: 3px solid var(--a); font-size: 14.5px; }
+  .msg.p1.agent .bubble { border-left-color: var(--line); border-right: 3px solid var(--b); }
+  .msg.steer .bubble { outline: 2px solid color-mix(in srgb, var(--warn) 60%, transparent); }
+  .bubble code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: color-mix(in srgb, var(--ink) 9%, transparent); padding: 1px 5px; border-radius: 5px; }
+  .bubble pre { margin: 6px 0; padding: 10px; overflow-x: auto; background: color-mix(in srgb, var(--ink) 8%, transparent); border-radius: 10px; white-space: pre; }
+  .bubble pre code { background: none; padding: 0; }
+  .empty { margin: 60px auto; text-align: center; color: var(--muted); max-width: 360px; }
+  .composer { padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--panel); }
+  .composer .row { display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; min-height: 44px; max-height: 160px; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--bg);
+  }
+  textarea:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--a); outline-offset: 1px; }
+  .btn {
+    border: 0; border-radius: 12px; padding: 0 18px; height: 44px; background: var(--a); color: #fff; font-weight: 600; cursor: pointer;
+  }
+  :root[data-theme="dark"] .btn, :root:not([data-theme="light"]) .btn { color: #0c1020; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .btn { color: #fff; } }
+  .btn.ghost { color: var(--ink) !important; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); height: 34px; padding: 0 12px; font-weight: 500; }
+  .mode { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .mode label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  aside h2 { margin: 0; padding: 14px 16px 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+  #ctx { flex: 1; overflow-y: auto; padding: 0 16px 8px; white-space: pre-wrap; font-size: 14px; overflow-wrap: anywhere; }
+  #ctx.placeholder { color: var(--muted); }
+  #ctxEdit { flex: 1; margin: 0 16px 8px; display: none; min-height: 200px; max-height: none; }
+  .ctxbar { padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .ctxbar textarea { min-height: 60px; }
+  .actions { display: flex; gap: 8px; }
+  /* login */
+  .login { max-width: 420px; margin: 14vh auto; padding: 28px 22px; text-align: center; }
+  .login h1 { margin: 14px 0 6px; font-size: 26px; letter-spacing: -.02em; }
+  .login p { color: var(--muted); }
+  .login input { width: 100%; margin: 14px 0 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+  .err { color: #d1453b; font-size: 14px; min-height: 20px; }
+  .banner { background: var(--b-soft); color: var(--ink); padding: 9px 16px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  [hidden] { display: none !important; }
+  @media (max-width: 820px) {
+    main { grid-template-columns: 1fr; }
+    aside { display: none; border-left: 0; }
+    main.showctx aside { display: flex; }
+    main.showctx .col { display: none; }
+    .tabs { display: flex; gap: 6px; padding: 8px 16px 0; background: var(--panel); }
+    .tabs button { flex: 1; border: 0; border-bottom: 2px solid transparent; background: none; padding: 8px; color: var(--muted); font-weight: 600; cursor: pointer; }
+    .tabs button.on { color: var(--ink); border-bottom-color: var(--a); }
+    .msg { max-width: 92%; }
+    .who { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { #feed { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const root = $("#root");
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+
+  async function api(path, opts = {}) {
+    const r = await fetch(path, { credentials: "same-origin", cache: "no-store", ...opts,
+      headers: { ...(opts.body ? { "Content-Type": "application/json" } : {}) } });
+    let data = null; try { data = await r.json(); } catch {}
+    if (!r.ok) { const e = new Error((data && (data.detail || data.error)) || r.statusText); e.status = r.status; e.data = data; throw e; }
+    return data;
+  }
+
+  // light markdown: code fences, inline code, bold, links (escaped first)
+  function render(text) {
+    let s = esc(text);
+    s = s.replace(/```([\s\S]*?)```/g, (_, c) => `<pre><code>${c.replace(/^\n/, "")}</code></pre>`);
+    s = s.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+    s = s.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+    s = s.replace(/\bhttps?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+    return s;
+  }
+
+  // ---------- login ----------
+  function showLogin(msg) {
+    root.innerHTML = `<div class="login">
+      <div class="brand" style="justify-content:center"><span class="logo"><i></i><i></i></span> Tandem Relay</div>
+      <h1>Private space</h1>
+      <p>Open your personal invite link, or paste your key below.</p>
+      <form id="lf"><input id="key" type="password" autocomplete="current-password" placeholder="Invite key" aria-label="Invite key" required>
+      <button class="btn" style="width:100%">Enter</button></form>
+      <div class="err" id="err" role="alert">${esc(msg || "")}</div></div>`;
+    $("#lf").onsubmit = async (e) => {
+      e.preventDefault();
+      try { await api("/api/login", { method: "POST", body: JSON.stringify({ key: $("#key").value.trim() }) }); start(); }
+      catch (er) { $("#err").textContent = er.status === 401 ? "That key didn't work." : (er.message || "Something went wrong."); }
+    };
+  }
+
+  // ---------- app ----------
+  let state, timer;
+  async function start() {
+    clearTimeout(timer);
+    let me;
+    try { me = await api("/api/me"); } catch { return showLogin(); }
+    state = { me: me.name, people: me.people, last: 0, lastAt: "", msgs: [], seen: new Set(), pres: [], ctxSha: null, editing: false, busy: false, fails: 0 };
+    root.innerHTML = `<div class="app">
+      <header>
+        <div class="brand"><span class="logo"><i></i><i></i></span> Tandem Relay</div>
+        <div class="who" id="who" aria-live="polite"></div>
+      </header>
+      <div id="banner" class="banner" hidden></div>
+      <div class="tabs" id="tabs"><button class="on" data-t="chat">Chat</button><button data-t="ctx">Shared context</button></div>
+      <main id="main">
+        <div class="col">
+          <div id="feed" role="log" aria-live="polite"></div>
+          <div class="composer">
+            <div class="mode">
+              <label><input type="radio" name="mode" value="steer" checked> Steer the agents</label>
+              <label><input type="radio" name="mode" value="note"> Just chat</label>
+              <span id="hint"></span>
+            </div>
+            <div class="row"><textarea id="txt" rows="1" placeholder="Message the shared chat…" aria-label="Message"></textarea>
+            <button class="btn" id="send">Send</button></div>
+          </div>
+        </div>
+        <aside>
+          <h2>Shared context <span class="actions"><button class="btn ghost" id="edit">Edit</button></span></h2>
+          <div id="ctx" class="placeholder">Loading…</div>
+          <textarea id="ctxEdit" aria-label="Edit shared context"></textarea>
+          <div class="ctxbar" id="ctxbar">
+            <textarea id="ctxAdd" placeholder="Add a note both agents will see…" aria-label="Add context note"></textarea>
+            <button class="btn" id="ctxBtn" style="height:38px">Add to context</button>
+          </div>
+        </aside>
+      </main>
+    </div>`;
+    wire();
+    loadCtx();
+    tick(true);
+  }
+
+  function wire() {
+    const txt = $("#txt");
+    const grow = () => { txt.style.height = "auto"; txt.style.height = Math.min(txt.scrollHeight, 160) + "px"; };
+    txt.addEventListener("input", grow);
+    txt.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+    $("#send").onclick = send;
+    $("#hint").textContent = "Enter to send, Shift+Enter for a new line";
+    $("#tabs").onclick = (e) => {
+      const t = e.target.closest("button"); if (!t) return;
+      document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b === t));
+      $("#main").classList.toggle("showctx", t.dataset.t === "ctx");
+    };
+    $("#ctxBtn").onclick = addCtx;
+    $("#edit").onclick = toggleEdit;
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(true); });
+  }
+
+  async function send() {
+    const txt = $("#txt"), text = txt.value.trim();
+    if (!text || state.busy) return;
+    state.busy = true; $("#send").disabled = true;
+    try {
+      const steer = document.querySelector('input[name="mode"]:checked').value === "steer";
+      const { message } = await api("/api/send", { method: "POST", body: JSON.stringify({ text, steer }) });
+      txt.value = ""; txt.style.height = "auto";
+      addMessages([message], true);
+    } catch (e) { banner("Couldn't send: " + e.message); }
+    state.busy = false; $("#send").disabled = false; txt.focus();
+  }
+
+  function banner(t) { const b = $("#banner"); if (!b) return; b.hidden = !t; b.textContent = t || ""; }
+
+  function pIndex(name) { const i = state.people.indexOf(name); return i < 0 ? 0 : i % 2; }
+  function addMessages(list, stick) {
+    const feed = $("#feed");
+    const nearBottom = stick || feed.scrollHeight - feed.scrollTop - feed.clientHeight < 140;
+    let added = false;
+    for (const m of list) {
+      if (state.seen.has(m.id)) continue;
+      state.seen.add(m.id); state.msgs.push(m); added = true;
+      if (m.id > state.last) { state.last = m.id; state.lastAt = m.at; }
+    }
+    if (!added) return;
+    state.msgs.sort((a, b) => a.id - b.id);
+    const empty = $(".empty", feed); if (empty) empty.remove();
+    feed.innerHTML = renderFeed();
+    if (nearBottom) feed.scrollTop = feed.scrollHeight;
+  }
+  function renderFeed() {
+    if (!state.msgs.length) return `<div class="empty"><b>Nothing here yet.</b><br>Messages from both of you and both Claude agents will show up in this one shared chat.</div>`;
+    let out = "", day = "";
+    for (const m of state.msgs) {
+      const d = new Date(m.at), dk = d.toDateString();
+      if (dk !== day) { day = dk; out += `<div class="day">${esc(d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }))}</div>`; }
+      const agent = m.kind === "agent", label = agent ? `${esc(m.who)}'s Claude` : esc(m.who);
+      const t = d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+      out += `<div class="msg p${pIndex(m.who)} ${agent ? "agent" : "human"}${m.steer ? " steer" : ""}">
+        <div class="meta"><b>${label}</b>${agent ? '<span class="tag">agent</span>' : ""}${m.steer ? '<span class="tag steer">steering</span>' : ""}<span>${t}</span></div>
+        <div class="bubble">${render(m.text)}</div></div>`;
+    }
+    return out;
+  }
+
+  function renderPresence() {
+    const who = $("#who"); if (!who) return;
+    const parts = [];
+    for (const name of state.people) {
+      const web = state.pres.find((p) => p.name === name && p.kind === "web");
+      const ag = state.pres.find((p) => p.name === name && p.kind === "agent");
+      const you = name === state.me;
+      const on = you || (web && web.online);
+      parts.push(`<span class="chip"><span class="dot ${on ? "on" : ""}"></span><b>${esc(name)}${you ? " (you)" : ""}</b>${on ? "online" : web ? "last seen " + ago(web.at) : "not seen yet"}</span>`);
+      const aOn = ag && ag.online;
+      parts.push(`<span class="chip"><span class="dot ${aOn ? "idle" : ""}" style="${aOn ? "background:var(--ok)" : ""}"></span>${esc(name)}'s Claude ${aOn ? "active" : ag ? ago(ag.at) : "not connected"}</span>`);
+    }
+    who.innerHTML = parts.join("");
+  }
+  function ago(iso) {
+    const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+    if (s < 90) return "just now"; if (s < 3600) return Math.round(s / 60) + "m ago";
+    if (s < 86400) return Math.round(s / 3600) + "h ago"; return Math.round(s / 86400) + "d ago";
+  }
+
+  async function tick(now) {
+    clearTimeout(timer);
+    try {
+      const q = state.last ? `?after=${state.last}&since=${encodeURIComponent(state.lastAt)}` : "";
+      const r = await api("/api/poll" + q);
+      state.fails = 0; banner("");
+      state.pres = r.presence; state.people = r.people;
+      addMessages(r.messages, !state.last);
+      if (!state.msgs.length) $("#feed").innerHTML = renderFeed();
+      renderPresence();
+    } catch (e) {
+      if (e.status === 401) return showLogin("Your session ended. Open your invite link again.");
+      state.fails++;
+      banner(e.status === 503 ? "Server setup isn't finished yet: " + e.message : "Connection trouble, retrying…");
+    }
+    timer = setTimeout(tick, document.hidden ? 20000 : state.fails ? 8000 : 4000);
+  }
+
+  // ---------- shared context ----------
+  async function loadCtx() {
+    try {
+      const c = await api("/api/context"); state.ctxSha = c.sha;
+      const el = $("#ctx"); el.classList.toggle("placeholder", !c.text);
+      el.innerHTML = c.text ? render(c.text) : "No shared notes yet. Add decisions, goals and who's doing what, and both Claude agents can read them.";
+      $("#ctxEdit").value = c.text;
+    } catch (e) { $("#ctx").textContent = "Couldn't load context: " + e.message; }
+  }
+  async function addCtx() {
+    const box = $("#ctxAdd"), text = box.value.trim(); if (!text) return;
+    $("#ctxBtn").disabled = true;
+    try { await api("/api/context", { method: "POST", body: JSON.stringify({ text }) }); box.value = ""; await loadCtx(); }
+    catch (e) { banner("Couldn't save: " + e.message); }
+    $("#ctxBtn").disabled = false;
+  }
+  async function toggleEdit() {
+    const btn = $("#edit");
+    if (!state.editing) { state.editing = true; btn.textContent = "Save"; $("#ctx").style.display = "none"; $("#ctxEdit").style.display = "block"; $("#ctxbar").hidden = true; return; }
+    try {
+      await api("/api/context", { method: "PUT", body: JSON.stringify({ text: $("#ctxEdit").value, sha: state.ctxSha }) });
+      state.editing = false; btn.textContent = "Edit"; $("#ctx").style.display = ""; $("#ctxEdit").style.display = "none"; $("#ctxbar").hidden = false;
+      await loadCtx();
+    } catch (e) {
+      banner(e.status === 409 ? "Someone changed the context while you were editing. Copy your text, then reload." : "Couldn't save: " + e.message);
+    }
+  }
+
+  // ---------- boot: invite link carries the key in the URL fragment (never sent to the server or logs) ----------
+  (async () => {
+    const m = location.hash.match(/[#&]k=([^&]+)/);
+    if (m) {
+      const key = decodeURIComponent(m[1]);
+      history.replaceState(null, "", location.pathname);
+      try { await api("/api/login", { method: "POST", body: JSON.stringify({ key }) }); } catch { return showLogin("That invite link isn't valid anymore."); }
+    }
+    start();
+  })();
+})();
+</script>
+</body>
+</html>
