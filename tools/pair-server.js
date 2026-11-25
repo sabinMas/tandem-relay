@@ -31,7 +31,7 @@ function gh(args, input) {
     encoding: "utf8",
     input,
     maxBuffer: 50 * 1024 * 1024,
-    shell: process.platform === "win32",
+    shell: false, // gh is a real .exe on Windows; a shell would split URLs at "&"
   });
   if (r.error) throw new Error(`could not run gh: ${r.error.message}. Is the GitHub CLI installed?`);
   if (r.status !== 0) {
