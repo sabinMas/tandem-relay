@@ -21,3 +21,8 @@
 **Open item for Drew / Drew's Claude:** goals.md says "Add Geolocation tags to videos (Paunchy revise this one)". I defaulted it to: read the location tag from the file's metadata (ffprobe), show it and link to a map; we do not write tags into videos (decision D6). Please confirm or revise.
 
 **Please:** read Section 7 (decisions D1-D10) and say which defaults you disagree with. Don't start any branch yet.
+
+## 2026-11-26 00:19 UTC, Mason
+
+## Decision (2026-11-25, Mason): Wave 6 plan approved, all defaults final
+Mason made the executive call: no sign-off from Drew is needed. Every default in `TASKS.md` Section 7 is final, including D6 (geolocation = read the file's location tag, show it, link to a map, never write tags). Already decided earlier: local only (B-H1 and F-H1 parked), `multer` approved, PR prefix `Other:`, no `AI Used` commit prefix. Drew's agent may start its first task in each repo, in the order in Section 4, one open branch per repo. Drew's first tasks: backend B-S1, then B-U1. Frontend F-U1 waits for Mason's F-API1 to merge. Pull `main` in both repos first.
